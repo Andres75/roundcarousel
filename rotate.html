@@ -1,0 +1,384 @@
+<html>
+<head>
+<title>Rotate Div</title>
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script src="jquery.easing.min.js"></script>
+<script src="Modernizr.js"></script>
+<script src="jquery.path.js"></script>
+<style>
+
+body  { /*width:100%; height:100%; position:relative*/ }
+.card { width:100px; height:80px; border-radius: 4px; text-align:center }
+</style>
+
+
+</head>
+<body>
+<div class="navigation"></div>
+<ul>
+<li class="object"><div class="card" style="background-color:gray">0</div></li>
+<li class="object"><div class="card" style="background-color:#cc0000">1</div></li>
+<li class="object"><div class="card" style="background-color:darkgreen">2</div></li>
+<li class="object"><div class="card" style="background-color:blue">3</div></li>
+<li class="object"><div class="card" style="background-color:pink">4</div></li>
+<li class="object"><div class="card" style="background-color:purple">5</div></li>
+
+</ul>
+<script>
+
+(function( $ ){
+
+
+	function l(data){
+		if (typeof console == "object") {
+			console.log(data);
+		}
+	}
+	
+	function w(data){
+		if (typeof console == "object") {
+			console.warn(data);
+		}
+	}
+
+	function toRad (deg){
+		return Math.round(deg*Math.PI/180);
+	}
+	
+	function toDeg(rad){
+		return Math.round(rad*180/Math.PI);
+	}
+	
+	function getPath(){}
+	
+  /***********************************************/       
+  $.fn.circleCarousel = function( method, options ) {
+
+		var self = this;
+		var container = $(self).parent();	
+		
+		var settings = $.extend( {
+				infinite 					: true,
+				items         		: null, 	/* integer 			   													 */
+				autosize					: true, 	/* false 																		*/
+				itemRotate 				: true, 	/* false, null=auto,requires 2d transforms */
+				offset            : 270,		/* extra offset (in degrees)              */
+				hwaccel  					: 'auto',	/* requires 2d transforms  							 */
+			  easing            : 'linear',
+				autoplay 					: false,
+				navcontainer  		: '.navigation'
+		}, options);
+		
+		var options = $.extend(settings, options);
+		
+		var init = function(){
+			
+			var itemRotateCheck = true;
+			var hwaccelCheck = true;
+			
+			self.data ({
+				
+					csstransforms   : Modernizr.csstransforms,
+					csstransforms3d : Modernizr.csstransforms3d,
+					csstransitions  : Modernizr.csstransitions
+				
+			});
+
+			self.parent().css('position','relative');
+
+			if (options.itemRotate) {
+				itemRotatCheck = itemRotateCheck && (self.data('csstransforms') && self.data('csstransitions'));
+				if (itemRotateCheck == false) { w('Item rotation not available.'); return false; }
+			} 
+			if (options.hwaccel) {
+				hwaccelCheck = hwaccelCheck && self.data('csstransitions');
+				if (hwaccelCheck == false) { w('Hardware acceleration not available.'); return false; }
+			}
+			
+			self.data('elements', self.find('li').length);
+			return true;
+		
+		}	/* end of Init */
+		
+		var setLayout = function(){
+			
+			Array.prototype.rotate = (function() {
+			    var unshift = Array.prototype.unshift,
+			        splice = Array.prototype.splice;
+			
+			    return function(count) {
+			        var len = this.length >>> 0,
+			            count = count >> 0;
+			
+			        unshift.apply(this, splice.call(this, count % len, len));
+			        return this;
+			    };
+			})();
+			
+			
+  		function translate(goto, multiArray){
+			l('--- in translate '+multiArray["angle_e"]);
+				var cpos  = multiArray["pos"].indexOf(1);
+				var s 	  = multiArray["angle_e"].slice(0);
+
+				var delta = -(goto-cpos);	
+				if (delta !=0) {
+					//multiArray["pos"].rotate(delta);
+					d = s.rotate(delta);
+					multiArray["angle_e"] = d;
+				}
+				return delta;
+			}	
+			
+		
+			var sliceDegrees = (360 / self.data('elements'));
+			var increase = Math.PI * 2 / self.data('elements');
+			var angle = 0;
+			
+			var obj 	 		= [];
+			var objdeg_s 	= [];
+			var objdeg_e 	= [];
+			var pos      	= [];
+			
+			var myCircle = { radius : 300,	centerpoint : { x : (window.innerWidth/2), y : (window.innerHeight/2) }	}
+			
+			$nav = $('<ul class="navigation"></ul>');
+			
+			self.find('li').each(function(i,e){
+
+				$li = $(this);
+				$li.append(toDeg(angle));
+				itemActive = (i==0) ? ' first active' : '';
+				itemLast = (i==self.data('elements')-1) ? ' last' : '';
+				$nav.append('<li class="navigation-item item-'+i+itemLast+itemActive+'"><a href="#">'+(i)+'</a></li>')
+				
+				var newDiv = document.createElement('div');
+				
+			  newDiv.style.position = 'absolute';
+				
+				x = myCircle.radius * Math.sin(angle) + myCircle.centerpoint.x;
+				y = myCircle.radius * Math.cos(angle) + myCircle.centerpoint.y;
+				
+				newDiv.style.top = y + "px";
+				newDiv.style.left = x + "px";
+				
+				obj.push(i);
+				objdeg_s.push(toDeg(angle));
+				objdeg_e.push(toDeg(angle));				
+				pos.push(0);
+				//objX.push(x);
+				//objY.push(y);
+				
+//				if (options.itemRotate){
+//					str = Math.atan2( y - myCircle.centerpoint.y, x - myCircle.centerpoint.x ) + options.offset * Math.PI /180 + 'rad';		
+//		    	newDiv.style.webkitTransform = newDiv.style.MozTransform =
+//	  	  	newDiv.style.OTransform = newDiv.style.transform =
+//	    		'rotate('+str+')';
+//
+//				}
+				$(newDiv).addClass('slice').addClass('slice-'+i).html($li.html());
+				$newDiv = $(newDiv).prependTo(container);
+				$li.remove();
+				angle += increase;
+			});
+			
+			$(options.navcontainer).append($nav);
+			$nav.find('a').bind('click',function(){
+
+				//l($multiple['pos']);
+
+				console.clear();
+				l('before translate');				
+				console.log("start ",$multiple['angle_s']);
+				console.log("end ",$multiple['angle_e']);
+				//console.log("$multiple['angle_e']);			
+				
+				var classStr = $(this).parent().attr('class');
+				var classArray = classStr.split(' ');
+				var index = classArray[1];
+				var classNumber = index.split('-');
+				var D = translate(parseInt(classNumber[1]), $multiple);
+				
+				l('after translate');
+				console.log("start ",$multiple['angle_s']);
+				console.log("end ",$multiple['angle_e']);	
+				//console.log("translation done -> startArray = "+$multiple['angle_s']);
+				//console.log("translation done -> endArray   = "+$multiple['angle_e']);
+				//l($multiple['pos']);
+				//$multiple['angle_s'] = $multiple['angle_e'];
+				play($multiple,0,D);
+				
+				//l('after');
+				//console.log("start ",$multiple['angle_s']);
+				//console.log("end ",$multiple['angle_e']);
+				
+			});
+			
+			$multiple = [];
+			$multiple["obj"] 	 = obj;
+			$multiple["angle_s"] = objdeg_s;
+			$multiple["angle_e"] = objdeg_e;
+			$multiple["pos"]   = pos; $multiple["pos"][0] = 1;
+			
+			return $multiple;
+
+		}
+
+		var prev = function(){
+			
+			var sliceDegrees = (360 / self.data('elements'));
+			var increase = Math.PI * 2 / self.data('elements');
+			var myCircle = { radius : 300,	centerpoint : { x : (window.innerWidth/2), y : (window.innerHeight/2) }	}
+			
+		}
+
+		var play = function(rotatorElements, direction, delta){
+			
+			/* next moves clockwise */
+			//console.clear();
+			l(rotatorElements['angle_s']);
+			l(rotatorElements['angle_e']);			
+			
+			var sliceDegrees = (360 / self.data('elements'));
+			var increase = Math.PI * 2 / self.data('elements');
+			var myCircle = { radius : 300,	centerpoint : { x : (window.innerWidth/2), y : (window.innerHeight/2) }	};
+			var x,y;
+			var arc_params;
+			var coordinatesChanged = false;
+
+					sourceLocation = rotatorElements["pos"].indexOf(1);
+					targetLocation = rotatorElements["pos"].rotate(delta).indexOf(1);
+					l(sourceLocation+' '+targetLocation);
+
+			for (var i=0; i<rotatorElements['obj'].length; i++){
+
+				$thisobj = $('.slice-'+rotatorElements['obj'][i]);
+				
+				startDegrees = rotatorElements['angle_s'][i];
+				endDegrees = rotatorElements['angle_e'][i];
+
+				if (startDegrees != endDegrees) {
+				
+
+					
+
+					
+					arc_params = {
+						center: [myCircle.centerpoint.x,myCircle.centerpoint.y],  
+						radius: myCircle.radius,    
+						start: startDegrees,
+						end: endDegrees,
+						dir: 1
+					}
+					//arrLen = rotatorElements['obj'].length;
+					$thisobj.animate({path : new $.path.arc(arc_params)},5000, 'linear', function(){
+						if ((i == rotatorElements['obj'].length) && (coordinatesChanged == false)) {
+	
+							coordinatesChanged = true;
+							l('current start array: '+rotatorElements['angle_s']);
+							l('swapping array...');
+	
+							rotatorElements['angle_s'] = rotatorElements['angle_e'];
+							
+							l('swapped start array: '+rotatorElements['angle_s']);
+							//if(options.autoplay) play(coords, direction);
+							
+							//l('done rotating -> change from start '+rotatorElements['angle_s']);
+							//l('to '+rotatorElements['angle_e']);	
+							
+						}
+	
+						
+					});						
+				} // End of start degrees != enddegrees
+			}
+			
+		} /* end of Play */
+
+		var startAnimate = function(rotatorElements){
+
+			var sliceDegrees = (360 / self.data('elements'));
+			var increase = Math.PI * 2 / self.data('elements');
+			var myCircle = { radius : 300,	centerpoint : { x : (window.innerWidth/2), y : (window.innerHeight/2) }	}
+			
+
+//			l(rotatorElements['angle_s']);
+			if (options.autoplay) next(rotatorElements,0);
+//			l(coords['angle']);
+//			next(coords);
+//			l(coords['angle']);
+//				$($('.slice').get().reverse()).each(function(){
+//					l($(this).attr('class'));
+//					x = parseInt($(this).css('left'),10);
+//					y = parseInt($(this).css('top'), 10);
+//					
+//					startRadiants = Math.atan2( y - myCircle.centerpoint.y, x - myCircle.centerpoint.x ) + (options.offset * Math.PI /180);
+//				  endRadiants = startRadiants - increase;
+//					
+//					l('s: ' + toDeg(startRadiants));
+//					l('e: ' + toDeg(endRadiants));
+//					
+//					var arc_params = {
+//		    		center: [myCircle.centerpoint.x,myCircle.centerpoint.y],  
+//		        radius: myCircle.radius,    
+//		        start: toDeg(startRadiants),
+//		        end: toDeg(endRadiants),
+//		        dir: -1
+//		 			}
+//					
+//					$(this).animate({path : new $.path.arc(arc_params)}, { duration:500, step:function(){
+//					
+//						newDiv = $(this).get(0);
+//						x = parseInt($(this).css('left'),10);
+//						y = parseInt($(this).css('top'), 10);
+//						
+//						str = Math.atan2( y - myCircle.centerpoint.y, x - myCircle.centerpoint.x ) + options.offset * Math.PI /180 + 'rad';
+//						
+//						newDiv.style.webkitTransform = newDiv.style.MozTransform =
+//						newDiv.style.OTransform = newDiv.style.transform =
+//						'rotate('+str+')';
+//						
+//					}, easing: options.easing }  );
+//					
+//				});
+
+
+			
+		}
+		
+    return this.each(function(){
+			if (init()==true){
+				allPointsArray = setLayout();
+				
+				/* if autoplay */
+				startAnimate(allPointsArray);
+
+				/* else */
+				
+				
+				
+			}
+			 else return false;
+		});
+
+  };
+  /**********************************************/
+})( jQuery );
+
+$(document).ready(function() {
+	$('ul').circleCarousel();
+	
+  var slices = 8;
+	var sliceDegree = (360 / slices);
+	
+	var myCircle = { radius : 300,	centerpoint : { x : (window.innerWidth/2), y : (window.innerHeight/2) }	}
+	var circumference = 2 * Math.PI * myCircle.radius;
+	
+	arcLength = (sliceDegree / 360) * circumference;
+	console.log (arcLength);
+
+});
+
+</script>
+</body>
+</html>
