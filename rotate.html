@@ -69,7 +69,7 @@ body  { /*width:100%; height:100%; position:relative*/ }
 				navcontainer  		: '.navigation',
 				longpath          : false,   /* always spins in one direction regardless of item proximiy */
 				dynamicSpeed   		: false,    /* keeps speed the same moving from one item to another */
-				duration          : 5000
+				duration          : 1000
 		}, options);
 		
 		var options = $.extend(settings, options);
@@ -283,7 +283,7 @@ body  { /*width:100%; height:100%; position:relative*/ }
 						dir: direction
 					}
 					//arrLen = rotatorElements['obj'].length;
-					$thisobj.animate({path : new $.path.arc(arc_params)},5000, 'linear', function(){
+					$thisobj.animate({path : new $.path.arc(arc_params)},1000, 'linear', function(){
 						if ((i == rotatorElements['obj'].length) && (coordinatesChanged == false)) {
 	
 							coordinatesChanged = true;
