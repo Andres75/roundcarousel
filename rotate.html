@@ -235,6 +235,21 @@ body  { /*width:100%; height:100%; position:relative*/ }
 			
 		}
 
+		function getDirection(from, to, array) {
+		    if (from === to) {
+		        return 0;
+		    }
+		    var internal = (Math.max(from, to) - Math.min(from, to) < array.length/2) ? true : false;
+		    if (internal && from < to
+		       ||
+		       !internal && from > to
+		    ) {
+		       return 1;
+		    } else {
+		       return -1;
+		    }
+		}
+
 		var play = function(rotatorElements, direction, delta){
 			
 			/* next moves clockwise */
@@ -256,15 +271,12 @@ body  { /*width:100%; height:100%; position:relative*/ }
 					
 					
 					if (!options.longpath) {
-						var dist = Math.abs(targetLocation - sourceLocation);
-						l(dist);
-						l(rotatorElements["pos"].length / 2);
-						if (dist < rotatorElements["pos"].length / 2) {
-						  direction = -1
-						} else {
-						  direction = 1
-						}
-					} else { direction = 1 }
+						
+						 direction = getDirection(sourceLocation, targetLocation, rotatorElements["pos"]);
+					l("dir: "+direction);						 
+						 }
+					
+
 
 			for (var i=0; i<rotatorElements['obj'].length; i++){
 
@@ -280,10 +292,10 @@ body  { /*width:100%; height:100%; position:relative*/ }
 						radius: myCircle.radius,    
 						start: startDegrees,
 						end: endDegrees,
-						dir: direction
+						dir: -direction
 					}
 					//arrLen = rotatorElements['obj'].length;
-					$thisobj.animate({path : new $.path.arc(arc_params)},1000, 'linear', function(){
+					$thisobj.stop().animate({path : new $.path.arc(arc_params)},2000, 'linear', function(){
 						if ((i == rotatorElements['obj'].length) && (coordinatesChanged == false)) {
 	
 							coordinatesChanged = true;
@@ -387,7 +399,6 @@ $(document).ready(function() {
 	var circumference = 2 * Math.PI * myCircle.radius;
 	
 	arcLength = (sliceDegree / 360) * circumference;
-	console.log (arcLength);
 
 });
 
