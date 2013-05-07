@@ -59,16 +59,17 @@ body  { /*width:100%; height:100%; position:relative*/ }
 		
 		var settings = $.extend( {
 				infinite 					: true,
-				items         		: null, 	/* integer 			   													 */
-				autosize					: true, 	/* false 																		*/
-				itemRotate 				: true, 	/* false, null=auto,requires 2d transforms */
-				offset            : 270,		/* extra offset (in degrees)              */
-				hwaccel  					: 'auto',	/* requires 2d transforms  							 */
+				items         		: null, 					/* integer 			   													 */
+				autosize					: true, 					/* false 																		*/
+				itemRotate 				: true, 					/* false, null=auto,requires 2d transforms */
+				offset            : 270,						/* extra offset (in degrees)              */
+				hwaccel  					: 'auto',					/* requires 2d transforms  							 */
 			  easing            : 'linear',
 				autoplay 					: false,
 				navcontainer  		: '.navigation',
-				longpath          : false,   /* always spins in one direction regardless of item proximiy */
-				dynamicSpeed   		: false,    /* keeps speed the same moving from one item to another */
+				prevnext          : true,
+				longpath          : false,  			 	/* always spins in one direction regardless of item proximiy */
+				dynamicSpeed   		: false,      		/* keeps speed the same moving from one item to another */
 				duration          : 1000
 		}, options);
 		
@@ -132,7 +133,11 @@ body  { /*width:100%; height:100%; position:relative*/ }
 				}
 				return delta;
 			}	
-			
+		
+			function switchNav(val){
+				$nav.find('li.active').removeClass('active');
+				$nav.find('li').eq(val+2).addClass('active');
+			}
 		
 			var sliceDegrees = (360 / self.data('elements'));
 			var increase = Math.PI * 2 / self.data('elements');
@@ -146,6 +151,13 @@ body  { /*width:100%; height:100%; position:relative*/ }
 			var myCircle = { radius : 300,	centerpoint : { x : (window.innerWidth/2), y : (window.innerHeight/2) }	}
 			
 			$nav = $('<ul class="navigation"></ul>');
+			
+			if (options.prevnext){
+				
+				$nav.append('<li class="navigation-item item-first"><a href="#">first</a></li>');
+				$nav.append('<li class="navigation-item item-prev"><a href="#">previous</a></li>');				
+				
+			}
 			
 			self.find('li').each(function(i,e){
 
@@ -169,9 +181,7 @@ body  { /*width:100%; height:100%; position:relative*/ }
 				objdeg_s.push(toDeg(angle));
 				objdeg_e.push(toDeg(angle));				
 				pos.push(0);
-				//objX.push(x);
-				//objY.push(y);
-				
+							
 //				if (options.itemRotate){
 //					str = Math.atan2( y - myCircle.centerpoint.y, x - myCircle.centerpoint.x ) + options.offset * Math.PI /180 + 'rad';		
 //		    	newDiv.style.webkitTransform = newDiv.style.MozTransform =
@@ -186,34 +196,59 @@ body  { /*width:100%; height:100%; position:relative*/ }
 			});
 			
 			$(options.navcontainer).append($nav);
-			$nav.find('a').bind('click',function(){
-
-				//l($multiple['pos']);
-
-				//console.clear();
-				//l('before translate');				
-				//console.log("start ",$multiple['angle_s']);
-				//console.log("end ",$multiple['angle_e']);
-				//console.log("$multiple['angle_e']);			
+			
+			if (options.prevnext){
 				
+				$nav.append('<li class="navigation-item item-next"><a href="#">next</a></li>');
+				$nav.append('<li class="navigation-item item-last"><a href="#">last</a></li>');				
+				
+			}			
+			
+			$nav.find('.navigation-item > a').bind('click',function(e){
+				e.preventDefault();
+				if( $('.slice-0').is(':not(:animated)') ){
+					
+					
+					
 				var classStr = $(this).parent().attr('class');
 				var classArray = classStr.split(' ');
 				var index = classArray[1];
 				var classNumber = index.split('-');
-				var D = translate(parseInt(classNumber[1]), $multiple);
+				var gotoValue = '';
+
+				if (!isNaN(parseInt(classNumber[1])))
+				  gotoValue = parseInt(classNumber[1]);
+				else {
+									
+					switch(classNumber[1]){
+						case "first":
+							gotoValue = 0;
+							break;
+						case 'prev':
+						  current = $(this).parent().parent().find('li.active').index()-2;
+							console.log(current);
+							gotoValue = (current == 0) ? $multiple['angle_s'].length-1 : current-1;
+
+							break;
+						case 'next':
+							current = $(this).parent().parent().find('li.active').index()-2;
+							gotoValue = (current == $multiple['angle_s'].length-1) ? 0 : current+1;
+							break;						
+						case 'last':
+							gotoValue = $multiple['angle_s'].length-1;
+							break;
+						}
 				
-				//l('after translate');
-				//console.log("start ",$multiple['angle_s']);
-				//console.log("end ",$multiple['angle_e']);	
-				//console.log("translation done -> startArray = "+$multiple['angle_s']);
-				//console.log("translation done -> endArray   = "+$multiple['angle_e']);
-				//l($multiple['pos']);
-				//$multiple['angle_s'] = $multiple['angle_e'];
+				}
+				
+				switchNav(gotoValue);				
+				var D = translate(parseInt(gotoValue), $multiple);
 				play($multiple,0,D);
-				
-				//l('after');
-				//console.log("start ",$multiple['angle_s']);
-				//console.log("end ",$multiple['angle_e']);
+			
+			
+			
+				} /* animated */
+			
 				
 			});
 			
@@ -251,12 +286,7 @@ body  { /*width:100%; height:100%; position:relative*/ }
 		}
 
 		var play = function(rotatorElements, direction, delta){
-			
-			/* next moves clockwise */
-			//console.clear();
-			//l(rotatorElements['angle_s']);
-			//l(rotatorElements['angle_e']);		
-					
+							
 			var sliceDegrees = (360 / self.data('elements'));
 			var increase = Math.PI * 2 / self.data('elements');
 			var myCircle = { radius : 300,	centerpoint : { x : (window.innerWidth/2), y : (window.innerHeight/2) }	};
@@ -264,19 +294,11 @@ body  { /*width:100%; height:100%; position:relative*/ }
 			var arc_params;
 			var coordinatesChanged = false;
 
-					//l(rotatorElements["pos"]);
 					sourceLocation = rotatorElements["pos"].indexOf(1);
-					targetLocation = rotatorElements["pos"].rotate(delta).indexOf(1);
-					//l(rotatorElements["pos"]);
+					targetLocation = rotatorElements["pos"].rotate(delta).indexOf(1);				
 					
-					
-					if (!options.longpath) {
-						
+					if (!options.longpath)					
 						 direction = getDirection(sourceLocation, targetLocation, rotatorElements["pos"]);
-					l("dir: "+direction);						 
-						 }
-					
-
 
 			for (var i=0; i<rotatorElements['obj'].length; i++){
 
@@ -296,20 +318,10 @@ body  { /*width:100%; height:100%; position:relative*/ }
 					}
 					//arrLen = rotatorElements['obj'].length;
 					$thisobj.stop().animate({path : new $.path.arc(arc_params)},2000, 'linear', function(){
+						
 						if ((i == rotatorElements['obj'].length) && (coordinatesChanged == false)) {
-	
 							coordinatesChanged = true;
-							//l('current start array: '+rotatorElements['angle_s']);
-							//l('swapping array...');
-	
 							rotatorElements['angle_s'] = rotatorElements['angle_e'];
-							
-							//l('swapped start array: '+rotatorElements['angle_s']);
-							//if(options.autoplay) play(coords, direction);
-							
-							//l('done rotating -> change from start '+rotatorElements['angle_s']);
-							//l('to '+rotatorElements['angle_e']);	
-							
 						}
 	
 						
